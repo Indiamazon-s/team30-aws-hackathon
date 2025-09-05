@@ -3,12 +3,15 @@
 import { useState } from 'react'
 import ChatInterface from './components/ChatInterface'
 import CountrySelector from './components/CountrySelector'
+import Navigation from './navigator/navigation'
 
 export default function Home() {
   const [selectedCountry, setSelectedCountry] = useState('US')
 
   return (
     <main className="min-h-screen bg-gray-50">
+      <Navigation />
+      
       <div className="container mx-auto px-4 py-8">
         <header className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
