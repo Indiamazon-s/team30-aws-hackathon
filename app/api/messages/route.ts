@@ -36,17 +36,16 @@ export async function GET(request: NextRequest) {
 
 // 메시지 저장 요청
 export async function POST(request: NextRequest) {
-  console.log('[api/messages] 뭐지?');
   try {
-    const { chatId, text, isReceived, feedback } = await request.json()
+    const { chatId, text, userId, feedback } = await request.json()
 
     // 메시지 타입 정의
     const message = {
       id: Date.now().toString(),
       chatId,
       text,
+      userId,
       timestamp: new Date().toISOString(),
-      isReceived: isReceived || false,
       feedback: feedback || null
     }
 

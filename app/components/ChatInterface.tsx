@@ -55,7 +55,7 @@ export default function ChatInterface({ selectedCountry, chatId }: ChatInterface
     }
   }, [chatId])
 
-  // 메시지 조회 함수
+  // 메시지 조회 함수(웹소켓과 별도로 DB에서 조회)
   const fetchMessages = async () => {
     try {
       // api 엔드포인트로 조회 요청
@@ -69,11 +69,12 @@ export default function ChatInterface({ selectedCountry, chatId }: ChatInterface
           id: msg.id,
           text: msg.text,
           timestamp: new Date(msg.timestamp),
-          isReceived: msg.isReceived,
+          isReceived: msg.userId !== userId,
           feedback: msg.feedback
         }))
         // 메시지 상태 업데이트
         setMessages(formattedMessages)
+        console.log('formattedMessages', formattedMessages)
       }
     } catch (error) {
       console.error('Failed to fetch messages:', error)
@@ -87,7 +88,7 @@ export default function ChatInterface({ selectedCountry, chatId }: ChatInterface
       const response = await fetch('/api/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chatId, text, isReceived: false })
+        body: JSON.stringify({ chatId, text, userId })
       })
       
       if (response.ok) {
@@ -126,6 +127,7 @@ export default function ChatInterface({ selectedCountry, chatId }: ChatInterface
         {messages.map((message) => (
           <div key={message.id} className="space-y-2">
             <div className={`p-3 rounded-lg max-w-xs ${
+              /* 송/수신 메시지는 여기서 관리됨. */
               message.isReceived ? 'bg-gray-100 mr-auto' : 'bg-blue-100 ml-auto'
             }`}>
               <p>{message.text}</p>
