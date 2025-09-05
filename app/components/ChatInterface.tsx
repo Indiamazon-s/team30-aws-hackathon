@@ -3,67 +3,27 @@
 import { useState, useEffect, useRef } from 'react'
 import MessageInput from './MessageInput'
 import MannerFeedback from './MannerFeedback'
+import TranslationHistory, { addToHistory } from './TranslationHistory'
 import { Language, getTranslation } from '../lib/i18n'
 
-// 채팅 인터페이스 property
 interface ChatInterfaceProps {
+  targetCountry: string
+  language: Language
   selectedCountry: string
   chatId: string
 }
 
-export default function ChatInterface({ /* TODO: targetCountry, language, */ chatId }: ChatInterfaceProps) {
+export default function ChatInterface({ targetCountry, language, chatId }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([])
-  // 현재 입력
   const [currentInput, setCurrentInput] = useState('')
-  // 웹소켓 클라이언트 참조값
   const wsRef = useRef<WebSocket | null>(null)
-  // 유저 아이디
   const userId = 'user-' + Math.random().toString(36).substr(2, 9)
-  
-  useEffect(() => {
-    fetchMessages()
-    
-    // 웹소켓 중개 서버 연결
-    wsRef.current = new WebSocket('ws://localhost:8080')
-    
-    // join 요청을 먼저 보내서 클라이언트 등록
-    wsRef.current.onopen = () => {
-      wsRef.current?.send(JSON.stringify({
-        type: 'join',
-        userId,
-        chatId
-      }))
-    }
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [showCopyToast, setShowCopyToast] = useState(false)
 
-    // 웹소켓 현재 객체의 onmessage 함수 등록, ? 이게 뭐지?
-    wsRef.current.onmessage = (event) => {
-      const data = JSON.parse(event.data)
-      if (data.type === 'message') {
-        const receivedMessage: Message = {
-          id: Date.now().toString(),
-          text: data.message,
-          timestamp: new Date(data.timestamp),
-          isReceived: true,
-          isTranslating: data.isTranslating,
-          translation: data.translation
-        }
-        setMessages(prev => [...prev, receivedMessage])
-      }
-    }
-
-    return () => {
-      wsRef.current?.close()
-    }
-  }, [chatId])
-
-  // 메시지 조회 함수(웹소켓과 별도로 DB에서 조회)
   const fetchMessages = async () => {
     try {
-      // api 엔드포인트로 조회 요청
-      console.log('[ChatInterface]chatId: ', chatId);
       const response = await fetch(`/api/messages?chatId=${chatId}`)
-      console.log('response', response)
-      // 응답 받기
       if (response.ok) {
         const data = await response.json()
         const formattedMessages = data.map((msg: any) => ({
@@ -73,19 +33,63 @@ export default function ChatInterface({ /* TODO: targetCountry, language, */ cha
           isReceived: msg.userId !== userId,
           feedback: msg.feedback
         }))
-        // 메시지 상태 업데이트
         setMessages(formattedMessages)
-        console.log('formattedMessages', formattedMessages)
       }
     } catch (error) {
       console.error('Failed to fetch messages:', error)
     }
   }
 
-  // 현재 메시지 전송
+  useEffect(() => {
+    fetchMessages()
+    
+    wsRef.current = new WebSocket('ws://localhost:8080')
+    
+    wsRef.current.onopen = () => {
+      wsRef.current?.send(JSON.stringify({
+        type: 'join',
+        userId,
+        chatId
+      }))
+    }
+
+    wsRef.current.onmessage = (event) => {
+      const data = JSON.parse(event.data)
+      if (data.type === 'message') {
+        const receivedMessage: Message = {
+          id: Date.now().toString(),
+          text: data.message,
+          timestamp: new Date(data.timestamp),
+          isReceived: true
+        }
+        setMessages(prev => [...prev, receivedMessage])
+      }
+    }
+
+    return () => {
+      wsRef.current?.close()
+    }
+  }, [chatId, userId])
+
+  const copyToClipboard = async (text: string, messageId: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedId(messageId)
+      setShowCopyToast(true)
+      setTimeout(() => {
+        setCopiedId(null)
+        setShowCopyToast(false)
+      }, 1500)
+    } catch (err) {
+      console.error('복사 실패:', err)
+    }
+  }
+
+  const t = (key: keyof typeof import('../lib/i18n').translations.ko) => 
+    getTranslation(language, key)
+
   const handleSendMessage = async (text: string) => {
     try {
-      // DB에 메시지 저장
       const response = await fetch('/api/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -98,15 +102,12 @@ export default function ChatInterface({ /* TODO: targetCountry, language, */ cha
           id: savedMessage.id,
           text: savedMessage.text,
           timestamp: new Date(savedMessage.timestamp),
-          isReceived: false,
-          isTranslating: savedMessage.isTranslating,
-          translation: savedMessage.translation
+          isReceived: false
         }
         
         setMessages(prev => [...prev, newMessage])
         setCurrentInput('')
         
-        // 웹소켓으로도 전송
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
           wsRef.current.send(JSON.stringify({
             type: 'message',
@@ -119,75 +120,23 @@ export default function ChatInterface({ /* TODO: targetCountry, language, */ cha
     }
   }
 
-  const handleTranslateMessage = async (messageId: string) => {
-    setMessages(prev => prev.map(msg => 
-      msg.id === messageId ? { ...msg, isTranslating: true } : msg
-    ))
-
-    try {
-      const message = messages.find(m => m.id === messageId)
-      if (!message) return
-
-      const response = await fetch('/api/translate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: message.text,
-          targetLanguage: language === 'ko' ? 'English' : 'Korean',
-          sourceLanguage: language === 'ko' ? 'Korean' : 'English',
-        }),
-      })
-      
-      const { translation } = await response.json()
-      
-      setMessages(prev => prev.map(msg => 
-        msg.id === messageId 
-          ? { ...msg, translation, isTranslating: false }
-          : msg
-      ))
-    } catch (error) {
-      console.error('Translation failed')
-      setMessages(prev => prev.map(msg => 
-        msg.id === messageId ? { ...msg, isTranslating: false } : msg
-      ))
-    }
-  }
-
   return (
     <div className="bg-white rounded-lg shadow-lg overflow-hidden">
       <div className="bg-blue-500 text-white p-4">
         <h2 className="text-xl font-semibold">채팅 창</h2>
-        <p className="text-blue-100">메시지를 입력하면 문화적 매너를 체크해드립니다 낄낄</p>
+        <p className="text-blue-100">메시지를 입력하면 문화적 매너를 체크해드립니다</p>
       </div>
       
       <div className="h-96 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => (
           <div key={message.id} className="space-y-2">
             <div className={`p-3 rounded-lg max-w-xs ${
-              /* 송/수신 메시지는 여기서 관리됨. */
               message.isReceived ? 'bg-gray-100 mr-auto' : 'bg-blue-100 ml-auto'
             }`}>
               <p>{message.text}</p>
-              {message.translation && (
-                <div className="mt-2 p-2 bg-gray-50 rounded text-sm">
-                  {/* TODO: <p className="text-gray-600 text-xs">{t('translatedMessage')}:</p> */}
-                  <p>{message.translation}</p>
-                </div>
-              )}
-              <div className="flex items-center justify-between mt-2">
-                <span className="text-xs text-gray-500">
-                  {message.timestamp.toLocaleTimeString()}
-                </span>
-                <button
-                  onClick={() => handleTranslateMessage(message.id)}
-                  disabled={message.isTranslating}
-                  className="text-xs text-blue-600 hover:text-blue-800 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  {/* TODO: {message.isTranslating ? t('translating') : t('translateMessage')} */}
-                </button>
-              </div>
+              <span className="text-xs text-gray-500">
+                {message.timestamp.toLocaleTimeString()}
+              </span>
             </div>
             {message.feedback && (
               <MannerFeedback feedback={message.feedback} language={language} />
@@ -200,11 +149,17 @@ export default function ChatInterface({ /* TODO: targetCountry, language, */ cha
         value={currentInput}
         onChange={setCurrentInput}
         onSend={handleSendMessage}
-        targetCountry={'TODO'}
-        language={'ko'}
+        targetCountry={targetCountry}
+        language={language}
       />
+      
+      <TranslationHistory language={language} />
+      
+      {showCopyToast && (
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-600 text-white px-4 py-2 rounded-lg shadow-lg z-50">
+          복사 완료! 📋
+        </div>
+      )}
     </div>
   )
 }
-
-

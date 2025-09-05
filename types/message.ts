@@ -10,4 +10,6 @@ interface Message {
     }
     translation: string
     isTranslating: boolean
+    isPending: boolean
+    isAnalyzing: boolean
   }
