@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import MessageInput from './MessageInput'
 import MannerFeedback from './MannerFeedback'
+import { Language, getTranslation } from '../lib/i18n'
 
 // 채팅 인터페이스 property
 interface ChatInterfaceProps {
@@ -10,9 +11,7 @@ interface ChatInterfaceProps {
   chatId: string
 }
 
-// 채팅 인터페이스
-export default function ChatInterface({ selectedCountry, chatId }: ChatInterfaceProps) {
-  // 메시지들
+export default function ChatInterface({ /* TODO: targetCountry, language, */ chatId }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([])
   // 현재 입력
   const [currentInput, setCurrentInput] = useState('')
@@ -44,7 +43,9 @@ export default function ChatInterface({ selectedCountry, chatId }: ChatInterface
           id: Date.now().toString(),
           text: data.message,
           timestamp: new Date(data.timestamp),
-          isReceived: true
+          isReceived: true,
+          isTranslating: data.isTranslating,
+          translation: data.translation
         }
         setMessages(prev => [...prev, receivedMessage])
       }
@@ -97,7 +98,9 @@ export default function ChatInterface({ selectedCountry, chatId }: ChatInterface
           id: savedMessage.id,
           text: savedMessage.text,
           timestamp: new Date(savedMessage.timestamp),
-          isReceived: false
+          isReceived: false,
+          isTranslating: savedMessage.isTranslating,
+          translation: savedMessage.translation
         }
         
         setMessages(prev => [...prev, newMessage])
@@ -116,6 +119,42 @@ export default function ChatInterface({ selectedCountry, chatId }: ChatInterface
     }
   }
 
+  const handleTranslateMessage = async (messageId: string) => {
+    setMessages(prev => prev.map(msg => 
+      msg.id === messageId ? { ...msg, isTranslating: true } : msg
+    ))
+
+    try {
+      const message = messages.find(m => m.id === messageId)
+      if (!message) return
+
+      const response = await fetch('/api/translate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: message.text,
+          targetLanguage: language === 'ko' ? 'English' : 'Korean',
+          sourceLanguage: language === 'ko' ? 'Korean' : 'English',
+        }),
+      })
+      
+      const { translation } = await response.json()
+      
+      setMessages(prev => prev.map(msg => 
+        msg.id === messageId 
+          ? { ...msg, translation, isTranslating: false }
+          : msg
+      ))
+    } catch (error) {
+      console.error('Translation failed')
+      setMessages(prev => prev.map(msg => 
+        msg.id === messageId ? { ...msg, isTranslating: false } : msg
+      ))
+    }
+  }
+
   return (
     <div className="bg-white rounded-lg shadow-lg overflow-hidden">
       <div className="bg-blue-500 text-white p-4">
@@ -131,12 +170,27 @@ export default function ChatInterface({ selectedCountry, chatId }: ChatInterface
               message.isReceived ? 'bg-gray-100 mr-auto' : 'bg-blue-100 ml-auto'
             }`}>
               <p>{message.text}</p>
-              <span className="text-xs text-gray-500">
-                {message.timestamp.toLocaleTimeString()}
-              </span>
+              {message.translation && (
+                <div className="mt-2 p-2 bg-gray-50 rounded text-sm">
+                  {/* TODO: <p className="text-gray-600 text-xs">{t('translatedMessage')}:</p> */}
+                  <p>{message.translation}</p>
+                </div>
+              )}
+              <div className="flex items-center justify-between mt-2">
+                <span className="text-xs text-gray-500">
+                  {message.timestamp.toLocaleTimeString()}
+                </span>
+                <button
+                  onClick={() => handleTranslateMessage(message.id)}
+                  disabled={message.isTranslating}
+                  className="text-xs text-blue-600 hover:text-blue-800 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  {/* TODO: {message.isTranslating ? t('translating') : t('translateMessage')} */}
+                </button>
+              </div>
             </div>
             {message.feedback && (
-              <MannerFeedback feedback={message.feedback} />
+              <MannerFeedback feedback={message.feedback} language={language} />
             )}
           </div>
         ))}
@@ -146,7 +200,8 @@ export default function ChatInterface({ selectedCountry, chatId }: ChatInterface
         value={currentInput}
         onChange={setCurrentInput}
         onSend={handleSendMessage}
-        targetCountry={selectedCountry}
+        targetCountry={'TODO'}
+        language={'ko'}
       />
     </div>
   )

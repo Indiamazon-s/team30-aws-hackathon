@@ -46,7 +46,8 @@ describe('/api/analyze', () => {
 
     expect(response.status).toBe(200)
     expect(result.type).toBe('good')
-    expect(result.message).toContain('매너 굿')
+    expect(result.message).toBe('👍 매너 굿! 미국 문화권에서 적절한 표현입니다.')
+
   })
 
   test('handles Bedrock API error gracefully', async () => {
@@ -73,7 +74,9 @@ describe('/api/analyze', () => {
 
     expect(response.status).toBe(200)
     expect(result.type).toBe('good')
-    expect(result.message).toContain('매너 굿')
+
+    expect(result.message).toBe('👍 매너 굿! 미국 문화권에서 적절한 표현입니다.')
+
   })
 
   test('handles invalid JSON response from Bedrock', async () => {
@@ -106,6 +109,8 @@ describe('/api/analyze', () => {
 
     expect(response.status).toBe(200)
     expect(result.type).toBe('good')
-    expect(result.message).toContain('매너 굿')
+
+    expect(result.message).toBe('👍 매너 굿! 미국 문화권에서 적절한 표현입니다.')
+
   })
 })

@@ -8,4 +8,6 @@ interface Message {
       message: string
       suggestion?: string
     }
+    translation: string
+    isTranslating: boolean
   }

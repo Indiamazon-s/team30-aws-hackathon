@@ -12,23 +12,23 @@ describe('Home Page', () => {
   test('renders main page elements', () => {
     render(<Home />)
 
-    expect(screen.getByText('CultureChat')).toBeInTheDocument()
-    expect(screen.getByText('문화적 배려가 담긴 매너있는 채팅 서비스')).toBeInTheDocument()
-    expect(screen.getByText('채팅 상대방의 국가를 선택하세요')).toBeInTheDocument()
+    expect(screen.getByText('title')).toBeInTheDocument()
+    expect(screen.getByText('subtitle')).toBeInTheDocument()
+    expect(screen.getByText('selectCountry')).toBeInTheDocument()
     expect(screen.getByText('채팅 창')).toBeInTheDocument()
   })
 
   test('country selection updates chat interface', () => {
     render(<Home />)
 
-    // 초기 상태는 미국
-    expect(screen.getByText('US 문화 기준으로 매너를 체크합니다')).toBeInTheDocument()
+    // 초기 상태는 한국
+    expect(screen.getByText('KR culturalCheck')).toBeInTheDocument()
 
-    // 일본 선택
-    const japanButton = screen.getByText('🇯🇵 일본')
-    fireEvent.click(japanButton)
+    // 미국 선택
+    const usButton = screen.getByText('🇺🇸 미국')
+    fireEvent.click(usButton)
 
-    expect(screen.getByText('JP 문화 기준으로 매너를 체크합니다')).toBeInTheDocument()
+    expect(screen.getByText('US culturalCheck')).toBeInTheDocument()
   })
 
   test('integrates country selector and chat interface', async () => {
@@ -55,7 +55,7 @@ describe('Home Page', () => {
     fireEvent.click(sendButton)
 
     // API가 올바른 국가 코드로 호출되는지 확인
-    expect(fetch).toHaveBeenCalledWith('/api/analyze', {
+    expect(fetch).toHaveBeenCalledWith('/api/analyze', expect.objectContaining({
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -63,8 +63,9 @@ describe('Home Page', () => {
       body: JSON.stringify({
         message: 'Hello',
         targetCountry: 'CN',
+        language: 'ko',
       }),
-    })
+    }))
   })
 
   test('has proper responsive layout classes', () => {
