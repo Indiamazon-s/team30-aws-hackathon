@@ -4,18 +4,26 @@ import { useState, useEffect, useRef } from 'react'
 import MessageInput from './MessageInput'
 import MannerFeedback from './MannerFeedback'
 
+// 채팅 인터페이스 property
 interface ChatInterfaceProps {
   selectedCountry: string
+  chatId: string
 }
 
-export default function ChatInterface({ selectedCountry }: ChatInterfaceProps) {
+// 채팅 인터페이스
+export default function ChatInterface({ selectedCountry, chatId }: ChatInterfaceProps) {
+  // 메시지들
   const [messages, setMessages] = useState<Message[]>([])
+  // 현재 입력
   const [currentInput, setCurrentInput] = useState('')
+  // 웹소켓 클라이언트 참조값
   const wsRef = useRef<WebSocket | null>(null)
-  const chatId = 'default-chat' // 임시 채팅 ID
+  // 유저 아이디
   const userId = 'user-' + Math.random().toString(36).substr(2, 9)
-
+  
   useEffect(() => {
+    fetchMessages()
+    
     // 웹소켓 중개 서버 연결
     wsRef.current = new WebSocket('ws://localhost:8080')
     
@@ -45,27 +53,65 @@ export default function ChatInterface({ selectedCountry }: ChatInterfaceProps) {
     return () => {
       wsRef.current?.close()
     }
-  }, [])
+  }, [chatId])
+
+  // 메시지 조회 함수
+  const fetchMessages = async () => {
+    try {
+      // api 엔드포인트로 조회 요청
+      console.log('[ChatInterface]chatId: ', chatId);
+      const response = await fetch(`/api/messages?chatId=${chatId}`)
+      console.log('response', response)
+      // 응답 받기
+      if (response.ok) {
+        const data = await response.json()
+        const formattedMessages = data.map((msg: any) => ({
+          id: msg.id,
+          text: msg.text,
+          timestamp: new Date(msg.timestamp),
+          isReceived: msg.isReceived,
+          feedback: msg.feedback
+        }))
+        // 메시지 상태 업데이트
+        setMessages(formattedMessages)
+      }
+    } catch (error) {
+      console.error('Failed to fetch messages:', error)
+    }
+  }
 
   // 현재 메시지 전송
   const handleSendMessage = async (text: string) => {
-    // 메시지 생성
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      text,
-      timestamp: new Date(),
-    }
-
-    // 메시지 스테이트 설정
-    setMessages(prev => [...prev, newMessage])
-    setCurrentInput('')
-
-    // 현재 참조 웹소켓 주소로 메시지 전송
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
-        type: 'message',
-        message: text
-      }))
+    try {
+      // DB에 메시지 저장
+      const response = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatId, text, isReceived: false })
+      })
+      
+      if (response.ok) {
+        const savedMessage = await response.json()
+        const newMessage: Message = {
+          id: savedMessage.id,
+          text: savedMessage.text,
+          timestamp: new Date(savedMessage.timestamp),
+          isReceived: false
+        }
+        
+        setMessages(prev => [...prev, newMessage])
+        setCurrentInput('')
+        
+        // 웹소켓으로도 전송
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          wsRef.current.send(JSON.stringify({
+            type: 'message',
+            message: text
+          }))
+        }
+      }
+    } catch (error) {
+      console.error('Failed to send message:', error)
     }
   }
 

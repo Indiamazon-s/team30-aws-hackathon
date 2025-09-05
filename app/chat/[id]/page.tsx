@@ -43,7 +43,7 @@ export default function ChatPage() {
           <h1 className="text-2xl font-bold text-gray-800">{chatInfo.name}</h1>
           <p className="text-gray-600">국가: {chatInfo.country}</p>
         </div>
-        <ChatInterface selectedCountry={chatInfo.country} />
+        <ChatInterface selectedCountry={chatInfo.country} chatId={chatId}/>
       </div>
     </div>
   )

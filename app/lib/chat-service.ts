@@ -30,6 +30,9 @@ export const chatService = {
   },
 
   async getMessages(chatId: string): Promise<Message[]> {
+    if (!chatId) {
+      throw new Error('Chat ID is required')
+    }
     const command = new QueryCommand({
       TableName: MESSAGES_TABLE,
       KeyConditionExpression: 'chatId = :chatId',

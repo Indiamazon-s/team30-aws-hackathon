@@ -1,4 +1,9 @@
 const WebSocket = require('ws'); // 웹소켓 모듈 임포트
+require('dotenv').config({ path: '../.env.local' })
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb')
+const { DynamoDBDocumentClient, PutCommand } = require('@aws-sdk/lib-dynamodb')
+
+const {dynamodb} = require('./dynamodbClient')
 
 const wss = new WebSocket.Server({ port: 8080 }); // 웹소켓 서버
 
@@ -20,6 +25,24 @@ wss.on('connection', (ws) => { // 웹소켓 서버의 on 함수
     if (data.type === 'message') {
       // 전송자를 매퍼에서 조회(userid, chatid)
       const sender = clients.get(ws);
+      const timestamp = new Date().toISOString();
+      
+      // DynamoDB에 메시지 저장
+      const messageData = {
+        id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        chatId: sender.chatId,
+        userId: sender.userId,
+        message: data.message,
+        timestamp
+      };
+      
+      dynamodb.send(new PutCommand({
+        TableName: 'CultureChat-Messages',
+        Item: messageData
+      })).catch(error => {
+        console.error('Failed to save message to DynamoDB:', error);
+      });
+      
       wss.clients.forEach((client) => {
         // 현재 웹소켓 요청 클라이언트의 정보를 조회
         if (client !== ws && client.readyState === WebSocket.OPEN) {
@@ -32,7 +55,7 @@ wss.on('connection', (ws) => { // 웹소켓 서버의 on 함수
               type: 'message',
               message: data.message,
               userId: sender.userId,
-              timestamp: new Date().toISOString()
+              timestamp
             }));
           }
         }
