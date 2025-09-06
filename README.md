@@ -38,6 +38,11 @@ AWS Bedrock의 Claude 3 모델을 활용하여 **관계별 맞춤형 매너 가�
 - 시각적 피드백 (경고/승인 표시)
 - 반응형 디자인으로 다양한 디바이스 지원
 
+## 아키텍처 
+<img width="572" height="561" alt="image" src="https://github.com/user-attachments/assets/a61868de-a9d1-4d01-896c-34b88d783771" />
+
+## 기술 스택
+
 ![메인 화면](./docs/images/main-screen.png)
 *메인 화면: 관계 설정 및 채팅방 생성*
 
