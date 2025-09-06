@@ -29,21 +29,37 @@ export default function ChatList({ onChatSelect, selectedChatId, currentUserEmai
   }, [currentUserEmail])
 
   const loadChats = async () => {
-    if (!currentUserEmail) return
+    if (!currentUserEmail) {
+      console.log('currentUserEmail이 없어서 채팅 로드 스킵')
+      setIsLoading(false)
+      return
+    }
     
+    console.log('채팅 로드 시작:', currentUserEmail)
     try {
       const response = await fetch(`/api/chats?userEmail=${encodeURIComponent(currentUserEmail)}`)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
       const data = await response.json()
-      setChats(Array.isArray(data) ? data : [])
+      console.log('채팅 로드 성공:', data.length, '개')
+      setChats(data)
     } catch (error) {
       console.error('Failed to load chats:', error)
-      setChats([])
+      setChats([]) // 오류 시 빈 배열로 설정
     } finally {
       setIsLoading(false)
     }
   }
 
   const handleCreateChat = async (receiverEmail: string, relationship: string) => {
+    if (!currentUserEmail) {
+      alert('사용자 정보를 찾을 수 없습니다.')
+      return
+    }
+    
+    console.log('채팅 생성 시도:', { senderEmail: currentUserEmail, receiverEmail, relationship })
+    
     try {
       const response = await fetch('/api/chat-request', {
         method: 'POST',
@@ -55,25 +71,52 @@ export default function ChatList({ onChatSelect, selectedChatId, currentUserEmai
         })
       })
       
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
       const data = await response.json()
       console.log('채팅 요청 응답:', data)
       
       if (data.success) {
         alert(data.message)
-        loadChats() // 채팅 목록 새로고침
+        await loadChats() // 채팅 목록 새로고침
       } else {
         console.error('채팅 요청 실패:', data)
         alert(data.error || '채팅 요청 실패')
       }
     } catch (error) {
       console.error('Failed to create chat:', error)
-      alert('채팅 요청 중 오류가 발생했습니다.')
+      alert('채팅 요청 중 오류가 발생했습니다: ' + (error as Error).message)
     }
   }
 
   const getCountryFlag = (countryCode: string) => {
     const country = countries.find(c => c.code === countryCode)
     return country ? country.flag : '🌍'
+  }
+
+  // 상대방 이메일 추출 함수
+  const getOtherUserEmail = (chat: Chat) => {
+    if (!currentUserEmail || !chat.participants) return chat.name
+    return chat.participants.find(email => email !== currentUserEmail) || chat.name
+  }
+
+  // 관계 라벨 매핑
+  const relationshipLabels: { [key: string]: string } = {
+    'boss': '상사',
+    'colleague': '동료', 
+    'friend': '친구',
+    'lover': '연인',
+    'parent': '부모님',
+    'stranger': '낯선 사람'
+  }
+
+  // 채팅방 표시 이름 생성
+  const getChatDisplayName = (chat: Chat) => {
+    const otherUserEmail = getOtherUserEmail(chat)
+    const relationshipLabel = relationshipLabels[chat.relationship] || chat.relationship
+    return `${otherUserEmail} (${relationshipLabel})`
   }
 
   if (isLoading) {
@@ -123,7 +166,7 @@ export default function ChatList({ onChatSelect, selectedChatId, currentUserEmai
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-lg">{getCountryFlag(chat.country)}</span>
-                    <h3 className="font-medium truncate">{chat.name}</h3>
+                    <h3 className="font-medium truncate">{getChatDisplayName(chat)}</h3>
                   </div>
                   {chat.lastMessage && (
                     <p className="text-sm text-gray-600 truncate mt-1">
