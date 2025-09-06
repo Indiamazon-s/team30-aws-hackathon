@@ -3,10 +3,18 @@ frontend:
   phases:
     preBuild:
       commands:
-        - npm ci --cache .npm --prefer-offline
+        - echo "Installing dependencies..."
+        - npm ci --cache .npm --prefer-offline --no-audit --no-fund
+        - echo "Loading environment from S3..."
+        - node -e "require('./lib/env-loader').loadEnvFromS3().then(() => console.log('Env loaded'))"
+        - echo "Dependencies installed successfully"
     build:
       commands:
+        - echo "Starting build process..."
         - npm run build
+        - echo "Checking API routes..."
+        - ls -la .next/server/app/api/
+        - echo "Build completed successfully"
   artifacts:
     baseDirectory: .next
     files:
@@ -15,6 +23,7 @@ frontend:
     paths:
       - .next/cache/**/*
       - .npm/**/*
+      - node_modules/**/*
 backend:
   phases:
     build:

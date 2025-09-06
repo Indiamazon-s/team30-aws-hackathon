@@ -36,6 +36,12 @@ export default function NewChatModal({ isOpen, onClose, onCreateChat }: NewChatM
       onClose()
     } catch (error) {
       console.error('채팅 생성 오류:', error)
+      // 네트워크 에러 시 사용자에게 알림
+      alert('채팅 요청을 전송할 수 없습니다. 데모 모드에서는 이 기능이 제한될 수 있습니다.')
+      // 에러가 발생해도 모달 닫기
+      setReceiverEmail('')
+      setSelectedRelationship('')
+      onClose()
     } finally {
       setIsLoading(false)
     }

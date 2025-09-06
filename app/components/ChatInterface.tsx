@@ -238,7 +238,7 @@ export default function ChatInterface({ targetCountry, language, chatId, userId,
             const altResponse = await fetch('/api/analyze-with-alternatives', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ message: text, targetCountry, relationship: selectedRelationship, language })
+              body: JSON.stringify({ message: text, targetCountry, relationship, language })
             })
             const altResult = await altResponse.json()
             if (altResult.alternatives) {

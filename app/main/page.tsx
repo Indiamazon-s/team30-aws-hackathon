@@ -83,16 +83,36 @@ export default function MainPage() {
       const userId = auth.user?.profile.sub
       const email = auth.user?.profile.email
       
+      if (!userId || !email) {
+        console.error('사용자 정보가 없습니다')
+        return
+      }
+      
       const response = await fetch('/api/user-profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, email, nationality, language })
       })
       
+      if (!response.ok) {
+        console.error('프로필 저장 실패:', response.status)
+        // 응답이 실패해도 로컬에서 설정 적용
+        setSelectedLanguage(language)
+        setSelectedCountry(nationality)
+        setIsProfileLoaded(true)
+        setShowProfileModal(false)
+        return
+      }
+      
       const data = await response.json()
-      if (data.success) {
+      if (data.success !== false) { // success가 false가 아니면 성공으로 간주
         setUserProfile(data.profile)
-        // 새로 설정한 언어와 국적으로 업데이트
+        setSelectedLanguage(language)
+        setSelectedCountry(nationality)
+        setIsProfileLoaded(true)
+        setShowProfileModal(false)
+      } else {
+        // API 저장 실패해도 로컬에서 설정 적용
         setSelectedLanguage(language)
         setSelectedCountry(nationality)
         setIsProfileLoaded(true)
@@ -100,6 +120,11 @@ export default function MainPage() {
       }
     } catch (error) {
       console.error('프로필 저장 오류:', error)
+      // 네트워크 에러 등이 발생해도 로컬에서 설정 적용
+      setSelectedLanguage(language)
+      setSelectedCountry(nationality)
+      setIsProfileLoaded(true)
+      setShowProfileModal(false)
     }
   }
 

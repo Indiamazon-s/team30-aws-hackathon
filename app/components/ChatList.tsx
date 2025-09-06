@@ -53,42 +53,100 @@ export default function ChatList({ onChatSelect, selectedChatId, currentUserEmai
   }
 
   const handleCreateChat = async (receiverEmail: string, relationship: string) => {
+    console.log('=== 채팅 생성 시작 ===')
+    console.log('currentUserEmail:', currentUserEmail)
+    console.log('receiverEmail:', receiverEmail)
+    console.log('relationship:', relationship)
+    console.log('window.location.origin:', window.location.origin)
+    
     if (!currentUserEmail) {
+      console.error('사용자 이메일이 없음')
       alert('사용자 정보를 찾을 수 없습니다.')
       return
     }
     
-    console.log('채팅 생성 시도:', { senderEmail: currentUserEmail, receiverEmail, relationship })
+    const requestData = {
+      senderEmail: currentUserEmail,
+      receiverEmail,
+      relationship
+    }
+    console.log('요청 데이터:', requestData)
     
     try {
-      const response = await fetch('/api/chat-request', {
+      console.log('API 호출 시작: /api/chat-request')
+      
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://deploy.d1xcna90zqs5wl.amplifyapp.com'
+        : window.location.origin
+      
+      console.log('Full URL:', `${baseUrl}/api/chat-request`)
+      
+      // API 엔드포인트 존재 확인
+      console.log('API 엔드포인트 존재 확인 중...')
+      const healthCheck = await fetch(`${baseUrl}/api/health`)
+      console.log('Health check status:', healthCheck.status)
+      
+      if (!healthCheck.ok) {
+        throw new Error('API 서버에 연결할 수 없습니다.')
+      }
+      
+      // 인증 토큰 가져오기
+      const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')
+      
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache'
+      }
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+      
+      const response = await fetch(`${baseUrl}/api/chat-request`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          senderEmail: currentUserEmail,
-          receiverEmail,
-          relationship
-        })
+        headers,
+        credentials: 'include',
+        body: JSON.stringify(requestData)
       })
       
+      console.log('Response received:')
+      console.log('- status:', response.status)
+      console.log('- ok:', response.ok)
+      console.log('- statusText:', response.statusText)
+      console.log('- headers:', Object.fromEntries(response.headers.entries()))
+      
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        const errorText = await response.text()
+        console.error('HTTP 에러 응답 텍스트:', errorText)
+        throw new Error(`HTTP error! status: ${response.status}, statusText: ${response.statusText}, body: ${errorText}`)
       }
       
       const data = await response.json()
-      console.log('채팅 요청 응답:', data)
+      console.log('성공 응답 데이터:', data)
       
       if (data.success) {
+        console.log('채팅방 생성 성공:', data.message)
         alert(data.message)
-        await loadChats() // 채팅 목록 새로고침
+        console.log('채팅 목록 새로고침 시작')
+        await loadChats()
+        console.log('채팅 목록 새로고침 완료')
       } else {
-        console.error('채팅 요청 실패:', data)
+        console.error('채팅 요청 실패 응답:', data)
         alert(data.error || '채팅 요청 실패')
       }
     } catch (error) {
-      console.error('Failed to create chat:', error)
-      alert('채팅 요청 중 오류가 발생했습니다: ' + (error as Error).message)
+      console.error('=== 채팅 생성 에러 ===')
+      console.error('Error type:', error instanceof Error ? error.constructor.name : typeof error)
+      console.error('Error message:', error instanceof Error ? error.message : String(error))
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack')
+      console.error('Full error object:', error)
+      
+      alert('채팅 요청 중 오류가 발생했습니다: ' + (error instanceof Error ? error.message : String(error)))
     }
+    
+    console.log('=== 채팅 생성 종료 ===')
   }
 
   const getCountryFlag = (countryCode: string) => {
@@ -115,7 +173,7 @@ export default function ChatList({ onChatSelect, selectedChatId, currentUserEmai
   // 채팅방 표시 이름 생성
   const getChatDisplayName = (chat: Chat) => {
     const otherUserEmail = getOtherUserEmail(chat)
-    const relationshipLabel = relationshipLabels[chat.relationship] || chat.relationship
+    const relationshipLabel = relationshipLabels[chat.relationship || 'friend'] || chat.relationship || 'friend'
     return `${otherUserEmail} (${relationshipLabel})`
   }
 

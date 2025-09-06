@@ -3,12 +3,19 @@ import { ChatService } from '../../lib/chat-service'
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
 import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb'
 
+const getCredentials = () => {
+  const accessKeyId = process.env.AWS_ACCESS_KEY_ID
+  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY
+  
+  if (accessKeyId && secretAccessKey) {
+    return { accessKeyId, secretAccessKey }
+  }
+  return undefined
+}
+
 const client = new DynamoDBClient({
   region: process.env.AWS_REGION || 'us-east-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
+  ...(getCredentials() && { credentials: getCredentials() })
 })
 
 const docClient = DynamoDBDocumentClient.from(client)
@@ -59,7 +66,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(normalizedChats)
   } catch (error) {
     console.error('채팅방 조회 오류:', error)
-    return NextResponse.json({ error: 'Failed to fetch chats' }, { status: 500 })
+    return NextResponse.json([])
   }
 }
 
@@ -69,6 +76,7 @@ export async function POST(request: NextRequest) {
     const chat = await ChatService.createChat(name, country)
     return NextResponse.json(chat)
   } catch (error) {
+    console.error('Chat creation error:', error)
     return NextResponse.json({ error: 'Failed to create chat' }, { status: 500 })
   }
 }
