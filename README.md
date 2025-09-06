@@ -1,4 +1,4 @@
-# Team 30 : CultureChat
+# Team 30 : Manner Check
 
 문화적 배려가 담긴 매너있는 외국인 채팅 서비스
 
