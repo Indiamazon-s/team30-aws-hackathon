@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Language, getTranslation } from '../lib/i18n'
+import { Language, getTranslation, languages } from '../lib/i18n'
+import useSTTService from '../services/STTService'
 
 interface MessageInputProps {
   value: string
@@ -13,6 +14,7 @@ interface MessageInputProps {
 
 export default function MessageInput({ value, onChange, onSend, targetCountry, language }: MessageInputProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const { startRecording, stopRecording, isRecording } = useSTTService(onChange, languages[language].stt_code)
 
   const t = (key: keyof typeof import('../lib/i18n').translations.ko) => 
     getTranslation(language, key)
@@ -30,7 +32,7 @@ export default function MessageInput({ value, onChange, onSend, targetCountry, l
   }
 
   return (
-    <form onSubmit={handleSubmit} className="border-t p-4">
+    <form onSubmit={handleSubmit} className="border-t p-3"> {/* padding 축소 */}
       <div className="flex space-x-2">
         <input
           type="text"
@@ -41,6 +43,17 @@ export default function MessageInput({ value, onChange, onSend, targetCountry, l
           disabled={isAnalyzing}
         />
         <button
+          type="button"
+          onClick={isRecording ? stopRecording : startRecording}
+          className={`px-4 py-2 rounded-lg flex items-center justify-center min-w-[50px] ${
+            isRecording 
+              ? 'bg-red-500 hover:bg-red-600 text-white' 
+              : 'bg-gray-500 hover:bg-gray-600 text-white'
+          }`}
+        >
+          {isRecording ? '⏹️' : '🎤'}
+        </button>
+        <button
           type="submit"
           disabled={!value.trim() || isAnalyzing}
           className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 min-w-[80px] justify-center"
@@ -48,15 +61,14 @@ export default function MessageInput({ value, onChange, onSend, targetCountry, l
           {isAnalyzing ? (
             <>
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              분석중
+              {t('analyzing')}
             </>
           ) : (
-            '전송'
+            t('sendButton')
           )}
-          {isAnalyzing ? t('analyzing') : t('sendButton')}
         </button>
       </div>
-      <p className="text-xs text-gray-500 mt-2">
+      <p className="text-xs text-gray-500 mt-1"> {/* margin 축소 */}
         {targetCountry} {t('culturalCheck')}
       </p>
     </form>

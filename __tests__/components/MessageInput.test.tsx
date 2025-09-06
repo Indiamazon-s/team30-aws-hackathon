@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import MessageInput from '../../app/components/MessageInput'
 
@@ -76,7 +76,7 @@ describe('MessageInput', () => {
     const sendButton = screen.getByText('전송')
     expect(sendButton).toBeDisabled()
   })
-  test('shows analyzing state', () => {
+  test('shows analyzing state', async () => {
     // 분석 중 상태를 시뮬레이션하기 위해 mockOnSend를 Promise로 만듦
     mockOnSend.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)))
 
@@ -86,13 +86,19 @@ describe('MessageInput', () => {
         onChange={mockOnChange}
         onSend={mockOnSend}
         targetCountry="US"
+        language="ko"
       />
     )
 
     const sendButton = screen.getByText('전송')
-    fireEvent.click(sendButton)
+    
+    await act(async () => {
+      fireEvent.click(sendButton)
+    })
 
-    expect(screen.getByText('분석중')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('분석중...')).toBeInTheDocument()
+    })
   })
 
 })
