@@ -15,4 +15,5 @@ export interface Message {
   isTranslating?: boolean
   isPending?: boolean
   isAnalyzing?: boolean
+  isTranslated?: boolean
 }
