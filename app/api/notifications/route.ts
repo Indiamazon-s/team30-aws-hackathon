@@ -6,12 +6,3 @@ export async function GET(request: NextRequest) {
     error: 'SSE notifications disabled. Use WebSocket instead.' 
   }, { status: 410 })
 }
-
-// 레거시 함수들 (사용하지 않음)
-export function sendNotification(userId: string, notification: any) {
-  console.log('SSE sendNotification deprecated')
-}
-
-export function broadcastNotification(notification: any) {
-  console.log('SSE broadcastNotification deprecated')
-}

@@ -34,9 +34,10 @@ export default function ChatList({ onChatSelect, selectedChatId, currentUserEmai
     try {
       const response = await fetch(`/api/chats?userEmail=${encodeURIComponent(currentUserEmail)}`)
       const data = await response.json()
-      setChats(data)
+      setChats(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Failed to load chats:', error)
+      setChats([])
     } finally {
       setIsLoading(false)
     }

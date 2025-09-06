@@ -45,14 +45,25 @@ export default function MainPage() {
   const checkUserProfile = async () => {
     try {
       const userId = auth.user?.profile.sub
+      if (!userId) {
+        setShowProfileModal(true)
+        setIsProfileLoaded(true)
+        return
+      }
+      
       const response = await fetch(`/api/user-profile?userId=${userId}`)
+      if (!response.ok) {
+        console.error('API 응답 오류:', response.status)
+        setShowProfileModal(true)
+        setIsProfileLoaded(true)
+        return
+      }
+      
       const data = await response.json()
       
       if (data.profile && data.profile.isProfileComplete) {
         setUserProfile(data.profile)
-        // DB에 저장된 언어와 국적으로 자동 설정
         const userLanguage = data.profile.language as Language
-        console.log('사용자 언어 설정:', userLanguage)
         setSelectedLanguage(userLanguage)
         setSelectedCountry(data.profile.nationality)
         setIsProfileLoaded(true)
@@ -63,6 +74,7 @@ export default function MainPage() {
     } catch (error) {
       console.error('프로필 체크 오류:', error)
       setShowProfileModal(true)
+      setIsProfileLoaded(true)
     }
   }
 
@@ -130,7 +142,7 @@ export default function MainPage() {
   const t = (key: keyof typeof import('../lib/i18n').translations.ko) => 
     getTranslation(selectedLanguage, key)
 
-  if (auth.isLoading) {
+  if (auth.isLoading || !isProfileLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">

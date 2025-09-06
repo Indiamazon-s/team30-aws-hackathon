@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       console.log('🛡️ [GUARDRAILS] Response:', JSON.stringify(response, null, 2))
 
       // Guardrails 결과 분석
-      if (response.action === 'BLOCKED') {
+      if (response.action && response.action.toString() === 'BLOCKED') {
         return NextResponse.json({
           type: 'blocked',
           message: '⚠️ 부적절한 내용이 감지되었습니다. 다른 표현을 사용해주세요.',

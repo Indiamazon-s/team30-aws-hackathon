@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { dynamodb } from '@/app/lib/dynamodb'
 import { UpdateCommand, QueryCommand } from '@aws-sdk/lib-dynamodb'
-import { sendNotification } from '../notifications/route'
 
 export async function POST(request: NextRequest) {
   try {
@@ -44,9 +43,8 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString()
     }
 
-    // 해당 채팅방의 모든 사용자에게 알림 (본인 제외)
-    // 실제로는 채팅방 참여자 목록을 조회해야 하지만, 간단히 구현
-    sendNotification(`${chatId}_read_status`, notification)
+    // WebSocket을 통해 알림 전송 (실제 구현에서는 WebSocket 서버로 전송)
+    console.log('Read status notification (WebSocket):', notification)
 
     return NextResponse.json({ success: true })
     

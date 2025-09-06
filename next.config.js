@@ -10,12 +10,6 @@ const nextConfig = {
   onDemandEntries: {
     maxInactiveAge: 25 * 1000,
     pagesBufferLength: 2,
-  },
-  // 불필요한 로그 제거
-  experimental: {
-    logging: {
-      level: 'error'
-    }
   }
 }
 

@@ -22,6 +22,10 @@ class SimpleCache {
     return item.data
   }
 
+  generateKey(message: string, targetCountry: string, relationship: string = ''): string {
+    return `${message.toLowerCase().trim()}_${targetCountry}_${relationship}`
+  }
+
   clear() {
     this.cache.clear()
   }

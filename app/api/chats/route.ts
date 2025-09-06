@@ -4,9 +4,10 @@ import { ChatService } from '../../lib/chat-service'
 export async function GET() {
   try {
     const chats = await ChatService.getChats()
-    return NextResponse.json(chats)
+    return NextResponse.json(Array.isArray(chats) ? chats : [])
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch chats' }, { status: 500 })
+    console.error('Chats API error:', error)
+    return NextResponse.json([])
   }
 }
 

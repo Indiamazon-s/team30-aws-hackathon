@@ -27,6 +27,10 @@ aws-exports.js
 *.swo
 *~
 
+# terraform
+terraform/.terraform*
+terraform/terraform.tfstate*
+
 # OS
 .DS_Store
 .DS_Store?

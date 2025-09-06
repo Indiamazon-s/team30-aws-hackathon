@@ -113,7 +113,7 @@ export default function ChatInterface({ targetCountry, language, chatId, userId 
       const data = await response.json()
       
       // 빈 메시지 필터링
-      const validMessages = data.filter(msg => msg.text && msg.text.trim() !== '' && msg.text !== 'undefined')
+      const validMessages = data.filter((msg: Message) => msg.text && msg.text.trim() !== '' && msg.text !== 'undefined')
       
       setMessages(validMessages)
     } catch (error) {
@@ -225,7 +225,7 @@ export default function ChatInterface({ targetCountry, language, chatId, userId 
             const altResponse = await fetch('/api/analyze-with-alternatives', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ message: text, targetCountry, relationship, language })
+              body: JSON.stringify({ message: text, targetCountry, relationship: selectedRelationship, language })
             })
             const altResult = await altResponse.json()
             if (altResult.alternatives) {
