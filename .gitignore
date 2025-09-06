@@ -20,6 +20,10 @@ build/
 .aws/
 aws-exports.js
 
+# terraform
+terraform/.terraform*
+terraform/terraform.tfstate*
+
 # IDE
 .vscode/
 .idea/
